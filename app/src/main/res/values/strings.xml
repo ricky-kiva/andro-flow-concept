@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Kotlin Flow Concept</string>
+    <string name="label_counter">Counter: %s</string>
 </resources>

@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.conflate
@@ -50,6 +52,14 @@ class MainViewModel: ViewModel() {
         emit("Main Dish")
         delay(20L)
         emit("Dessert")
+    }
+
+    // 5. StateFlow: A Flow that holds single updatable value, that emits updates to collectors
+    private val _counterStateFlow = MutableStateFlow(0)
+    val counterStateFlow = _counterStateFlow.asStateFlow()
+
+    fun incrementCounter() {
+        _counterStateFlow.value += 1
     }
 
     init {
