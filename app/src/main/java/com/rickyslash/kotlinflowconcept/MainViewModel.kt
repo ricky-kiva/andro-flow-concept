@@ -5,6 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.buffer
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.count
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flatMapConcat
@@ -40,12 +43,22 @@ class MainViewModel: ViewModel() {
         emit(2)
     }
 
+    private val mealCoursesFlow = flow {
+        delay(50L)
+        emit("Appetizer")
+        delay(200L)
+        emit("Main Dish")
+        delay(20L)
+        emit("Dessert")
+    }
+
     init {
         viewModelScope.launch {
             collectBasicFlow()
             collectSimpleOperator()
             collectTerminalOperator()
             collectFlatteningOperator()
+            collectEmissionHandlingOperator()
         }
     }
 
@@ -127,6 +140,38 @@ class MainViewModel: ViewModel() {
                 }
             }
             .collect { Log.d(TAG, "3.3 flatMapLatest: $it") }
+    }
+
+    // 3.4 Emission Handling Operators: Handle the flow of emission when collected
+    // - Buffer: Collect Flow value as soon as it is emitted
+    // - Conflate: Put simply, only collect & process the first & last emission
+    // - collectLatest: Cancels previous collector and only processes the most recent value emitted
+    private suspend fun collectEmissionHandlingOperator() {
+        mealCoursesFlow
+            .onEach { Log.d(TAG, "3.4.1.1 $it: is delivered!") }
+            .buffer()
+            .collect {
+                Log.d(TAG, "3.4.1.2 $it: Now eating!")
+                delay(300L)
+                Log.d(TAG, "3.4.1.3 $it: Finished eating!")
+            }
+
+        mealCoursesFlow
+            .onEach { Log.d(TAG, "3.4.2.1 $it: is delivered!") }
+            .conflate()
+            .collect {
+                Log.d(TAG, "3.4.2.2 $it: Now eating!")
+                delay(300L)
+                Log.d(TAG, "3.4.2.3 $it: Finished eating!")
+            }
+
+        mealCoursesFlow
+            .onEach { Log.d(TAG, "3.4.3.1 $it: is delivered!") }
+            .collectLatest {
+                Log.d(TAG, "3.4.3.2 $it: Now eating!")
+                delay(300L)
+                Log.d(TAG, "3.4.3.3 $it: Finished eating!")
+            }
     }
 
     companion object {
