@@ -5,7 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.collectLatest
@@ -58,17 +60,46 @@ class MainViewModel: ViewModel() {
     private val _counterStateFlow = MutableStateFlow(0)
     val counterStateFlow = _counterStateFlow.asStateFlow()
 
+    // 6. SharedFlow: Hot state-sharing Flow that allows multiple consumers collect emitted values
+    private val _hotSharedFlow = MutableSharedFlow<String>()
+    private val hotSharedFlow = _hotSharedFlow.asSharedFlow()
+
+    // 6.1 SharedFlow: Display on UI
+    private val _helloSharedFlow = MutableSharedFlow<String>()
+    val helloSharedFlow = _helloSharedFlow.asSharedFlow()
+
+    // 5. StateFlow: Function to modify StateFlow value
     fun incrementCounter() {
         _counterStateFlow.value += 1
     }
 
+    // 6.1 SharedFlow: Function to emit Flow
+    fun sayHelloToTheFlow() {
+        viewModelScope.launch {
+            _helloSharedFlow.apply {
+                emit("Good Morning!")
+                delay(500L)
+                emit("Guten Morgen!")
+                delay(500L)
+                emit("Ohayo Gozaimasu!")
+                delay(500L)
+                emit("Sabah Alkhayr!")
+                delay(500L)
+                emit("Selamat Pagi!")
+            }
+        }
+    }
+
     init {
+        collectTwiceSharedFlow()
+
         viewModelScope.launch {
             collectBasicFlow()
             collectSimpleOperator()
             collectTerminalOperator()
             collectFlatteningOperator()
             collectEmissionHandlingOperator()
+            triggerSharedFlow()
         }
     }
 
@@ -182,6 +213,32 @@ class MainViewModel: ViewModel() {
                 delay(300L)
                 Log.d(TAG, "3.4.3.3 $it: Finished eating!")
             }
+    }
+
+    // 6. Function to trigger SharedFlow
+    private suspend fun triggerSharedFlow() {
+        val hot = StringBuilder()
+            .append("HOT! ")
+            .append("THE FLOW IS SO HOT!")
+
+        _hotSharedFlow.emit(hot.toString())
+    }
+
+    // 6. Function to collect SharedFlow
+    private fun collectTwiceSharedFlow() {
+        viewModelScope.launch {
+            hotSharedFlow.collect {
+                delay(200L)
+                Log.d(TAG, "6.1 First SharedFlow: $it")
+            }
+        }
+
+        viewModelScope.launch {
+            hotSharedFlow.collect {
+                delay(300L)
+                Log.d(TAG, "6.2 First SharedFlow: $it")
+            }
+        }
     }
 
     companion object {

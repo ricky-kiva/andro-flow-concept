@@ -1,6 +1,7 @@
 package com.rickyslash.kotlinflowconcept
 
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -14,6 +15,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,6 +41,15 @@ class MainActivity : ComponentActivity() {
             KotlinFlowConceptTheme {
                 val counter = viewModel.counterStateFlow.collectAsState(0)
                 val onIncrement = { viewModel.incrementCounter() }
+
+                // send SharedFlow data to UI
+                LaunchedEffect(true) { // `true` to launch LaunchEffect only once
+                    viewModel.helloSharedFlow.collect {
+                        Toast.makeText(this@MainActivity, it, Toast.LENGTH_SHORT).show()
+                    }
+                }
+
+                viewModel.sayHelloToTheFlow()
 
                 Scaffold { innerPadding ->
                     viewModel.apply {
@@ -103,6 +114,18 @@ fun <T> ComponentActivity.collectLatestLifeCycleFlow(
     lifecycleScope.launch {
         repeatOnLifecycle(Lifecycle.State.STARTED) {
             flow.collectLatest(collect)
+        }
+    }
+}
+
+// Function to get SharedFlow on View-based activity
+fun <T> ComponentActivity.collectLifeCycleFlow(
+    flow: Flow<T>,
+    collect: suspend (T) -> Unit
+) {
+    lifecycleScope.launch {
+        repeatOnLifecycle(Lifecycle.State.STARTED) {
+            flow.collect(collect)
         }
     }
 }
