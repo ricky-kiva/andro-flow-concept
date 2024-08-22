@@ -31,16 +31,30 @@ class MainViewModel: ViewModel() {
     }
 
     init {
-        collectBasicFlow()
+        viewModelScope.launch {
+            collectBasicFlow()
+            collectSimpleOperator()
+        }
     }
 
     // 1. Basic Flow: Collect
-    private fun collectBasicFlow() {
-       viewModelScope.launch {
-           countdownFlow.collect { time ->
-               Log.d(TAG, "1. Flow: $time")
-           }
+    private suspend fun collectBasicFlow() {
+       countdownFlow.collect { time ->
+           Log.d(TAG, "1. Flow: $time")
        }
+    }
+
+    // 2.1. Simple Flow Operator: Do data processing on Flow items
+    // - filter -> filter each flow item based on boolean
+    // - map    -> transform each flow item
+    // - onEach -> do non-transforming operation on each flow item
+    // - count  -> reducer to count amount of item that is true
+    private suspend fun collectSimpleOperator() {
+        countdownFlow
+            .filter { time -> time % 2 == 0 }
+            .map { time -> time * time }
+            .onEach { time -> Log.d(TAG, "2.1.A Logged on each: $time") }
+            .collect { time -> Log.d(TAG, "2.1.B Augmented Flow: $time") }
     }
 
     companion object {
