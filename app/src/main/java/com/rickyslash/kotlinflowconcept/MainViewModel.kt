@@ -3,6 +3,8 @@ package com.rickyslash.kotlinflowconcept
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.rickyslash.kotlinflowconcept.helper.DefaultDispatchers
+import com.rickyslash.kotlinflowconcept.helper.DispatcherProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -18,34 +20,39 @@ import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flatMapMerge
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.fold
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.reduce
 import kotlinx.coroutines.launch
 
-class MainViewModel: ViewModel() {
+class MainViewModel(
+    private val dispatchers: DispatcherProvider = DefaultDispatchers()
+): ViewModel() {
+
+    val countdownDelay = 250L
 
     // 1. Basic Flow: Data type
-    private val countdownFlow = flow {
-        val startValue = 10
+    val countdownFlow = flow {
+        val startValue = 5
         var currentValue = startValue
 
         emit(currentValue)
 
         while (currentValue > 0) {
-            delay(250L)
+            delay(countdownDelay)
             currentValue--
 
             emit(currentValue)
         }
-    }
+    }.flowOn(dispatchers.main)
 
     private val forFlatMapFlow = flow {
         emit(1)
         delay(250L)
         emit(2)
-    }
+    }.flowOn(dispatchers.main)
 
     private val mealCoursesFlow = flow {
         delay(50L)
@@ -54,7 +61,7 @@ class MainViewModel: ViewModel() {
         emit("Main Dish")
         delay(20L)
         emit("Dessert")
-    }
+    }.flowOn(dispatchers.main)
 
     // 5. StateFlow: A Flow that holds single updatable value, that emits updates to collectors
     private val _counterStateFlow = MutableStateFlow(0)
@@ -62,7 +69,7 @@ class MainViewModel: ViewModel() {
 
     // 6. SharedFlow: Hot state-sharing Flow that allows multiple consumers collect emitted values
     private val _hotSharedFlow = MutableSharedFlow<String>()
-    private val hotSharedFlow = _hotSharedFlow.asSharedFlow()
+    val hotSharedFlow = _hotSharedFlow.asSharedFlow()
 
     // 6.1 SharedFlow: Display on UI
     private val _helloSharedFlow = MutableSharedFlow<String>()
@@ -73,9 +80,20 @@ class MainViewModel: ViewModel() {
         _counterStateFlow.value += 1
     }
 
+    // 6. Function to trigger SharedFlow
+    fun triggerSharedFlow() {
+        viewModelScope.launch(dispatchers.main) {
+            val hot = StringBuilder()
+                .append("HOT! ")
+                .append("THE FLOW IS SO HOT!")
+
+            _hotSharedFlow.emit(hot.toString())
+        }
+    }
+
     // 6.1 SharedFlow: Function to emit Flow
     fun sayHelloToTheFlow() {
-        viewModelScope.launch {
+        viewModelScope.launch(dispatchers.main) {
             _helloSharedFlow.apply {
                 emit("Good Morning!")
                 delay(500L)
@@ -93,14 +111,15 @@ class MainViewModel: ViewModel() {
     init {
         collectTwiceSharedFlow()
 
-        viewModelScope.launch {
+        viewModelScope.launch(dispatchers.main) {
             collectBasicFlow()
             collectSimpleOperator()
             collectTerminalOperator()
             collectFlatteningOperator()
             collectEmissionHandlingOperator()
-            triggerSharedFlow()
         }
+
+        triggerSharedFlow()
     }
 
     // 1. Basic Flow: Collect
@@ -215,25 +234,16 @@ class MainViewModel: ViewModel() {
             }
     }
 
-    // 6. Function to trigger SharedFlow
-    private suspend fun triggerSharedFlow() {
-        val hot = StringBuilder()
-            .append("HOT! ")
-            .append("THE FLOW IS SO HOT!")
-
-        _hotSharedFlow.emit(hot.toString())
-    }
-
     // 6. Function to collect SharedFlow
     private fun collectTwiceSharedFlow() {
-        viewModelScope.launch {
+        viewModelScope.launch(dispatchers.main) {
             hotSharedFlow.collect {
                 delay(200L)
                 Log.d(TAG, "6.1 First SharedFlow: $it")
             }
         }
 
-        viewModelScope.launch {
+        viewModelScope.launch(dispatchers.main) {
             hotSharedFlow.collect {
                 delay(300L)
                 Log.d(TAG, "6.2 First SharedFlow: $it")
