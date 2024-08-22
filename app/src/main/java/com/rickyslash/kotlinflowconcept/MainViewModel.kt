@@ -3,9 +3,13 @@ package com.rickyslash.kotlinflowconcept
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.count
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.flatMapConcat
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flatMapMerge
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.fold
 import kotlinx.coroutines.flow.map
@@ -30,11 +34,18 @@ class MainViewModel: ViewModel() {
         }
     }
 
+    private val forFlatMapFlow = flow {
+        emit(1)
+        delay(250L)
+        emit(2)
+    }
+
     init {
         viewModelScope.launch {
             collectBasicFlow()
             collectSimpleOperator()
             collectTerminalOperator()
+            collectFlatteningOperator()
         }
     }
 
@@ -79,6 +90,43 @@ class MainViewModel: ViewModel() {
             .fold(100) { acc, item -> acc + item }
 
         Log.d(TAG, "2.2.3 Accumulated sum of odd Flow by initial of 100: $foldResult")
+    }
+
+    // 3.1 Flattening Flow Operator: Emit some data on Flow based on another Flow
+    // - flatMapConcat: Will pass emission of the first Flow 1 by 1 to be processed by another flow
+    // - flatMapMerge: Will pass emission of the first Flow to another flow as soon as it's available
+    // - flatMapLatest: When Flow emits new value, the previous Flow process is cancelled & replaced
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private suspend fun collectFlatteningOperator() {
+        forFlatMapFlow
+            .flatMapConcat { value ->
+                flow {
+                    emit(value + 1)
+                    delay(250L)
+                    emit(value + 2)
+                }
+            }
+            .collect { Log.d(TAG, "3.1 flatMapConcat: $it") }
+
+        forFlatMapFlow
+            .flatMapMerge { value ->
+                flow {
+                    emit(value + 1)
+                    delay(250L)
+                    emit(value + 2)
+                }
+            }
+            .collect { Log.d(TAG, "3.2 flatMapMerge: $it") }
+
+        forFlatMapFlow
+            .flatMapLatest { value ->
+                flow {
+                    emit(value + 1)
+                    delay(250L)
+                    emit(value + 2)
+                }
+            }
+            .collect { Log.d(TAG, "3.3 flatMapLatest: $it") }
     }
 
     companion object {
