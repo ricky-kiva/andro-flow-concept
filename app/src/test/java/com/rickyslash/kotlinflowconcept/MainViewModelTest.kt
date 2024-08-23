@@ -8,7 +8,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
-import kotlinx.coroutines.test.advanceUntilIdle
 import org.junit.Before
 import org.junit.Test
 
@@ -23,6 +22,7 @@ class MainViewModelTest {
         viewModel = MainViewModel(testDispatchers)
     }
 
+    // Test basic Flow with time being advanced
     @OptIn(ExperimentalCoroutinesApi::class)
     @Test
     fun `countdownFlow, properly counts down from 5 to 0`() = runBlocking {
@@ -39,7 +39,7 @@ class MainViewModelTest {
         }
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
+    // Test SharedFLow emission is successfully received
     @Test
     fun `triggerSharedFlow, return correct string`() = runBlocking {
         val testJob = launch { // uses Job so `triggerSharedFlow` & `testJob` runs simultaneously
